@@ -1,0 +1,209 @@
+[
+  {
+    "title": "Final Program in Teaching Lunch of the Semester",
+    "date": "2026-11-11",
+    "food": "Lunch",
+    "source": "Daily Messages",
+    "start": "12:00",
+    "end": "13:00",
+    "location": "Faculty House Lounge",
+    "url": "https://events.williams.edu/event/final-program-in-teaching-lunch-of-the-semester-all-members-of-the-williams-community-are-welcome/",
+    "eligibility": "Williams community"
+  },
+  {
+    "title": "Math & Stats Tea",
+    "date": "2026-11-11",
+    "food": "Tea and snacks",
+    "source": "SMAB Weekly",
+    "start": "14:00",
+    "end": "15:00",
+    "location": "Frank Morgan Library",
+    "repeat": "weekly",
+    "eligibility": "Check invitation"
+  },
+  {
+    "title": "LinkedIn Photobooth",
+    "date": "2026-11-11",
+    "food": "Snacks",
+    "source": "’68 Center email",
+    "start": "16:15",
+    "end": "19:00",
+    "location": "Davis Center Multipurpose Room",
+    "eligibility": "Check invitation",
+    "rsvp": true
+  },
+  {
+    "title": "International Karaoke Night",
+    "date": "2026-11-11",
+    "food": "Food from around the world",
+    "source": "International Education Week email",
+    "start": "18:00",
+    "end": "20:00",
+    "location": "Paresky 201",
+    "url": "https://events.williams.edu/event/international-karaoke-night-%f0%9f%8e%b6-by-cgllc-teaching-associates-and-language-fellows/",
+    "eligibility": "Check invitation"
+  },
+  {
+    "title": "Chai and Chat with the Aunties",
+    "date": "2026-11-12",
+    "food": "Homemade chai",
+    "source": "Daily Messages",
+    "start": "11:00",
+    "end": "13:00",
+    "location": "Jenness House living room",
+    "url": "https://events.williams.edu/event/special-drop-in-chai-and-chat-with-the-aunties-gayatri-sethi-ch-sidra-mahmood-11am-1pm/",
+    "eligibility": "Williams community"
+  },
+  {
+    "title": "ISA Student–Faculty International Snacks Mixer",
+    "date": "2026-11-12",
+    "food": "International snacks",
+    "source": "International Education Week email",
+    "start": "16:00",
+    "end": "18:00",
+    "location": "Hollander 241",
+    "eligibility": "Williams community"
+  },
+  {
+    "title": "CDC TAPSI Listening Session",
+    "date": "2026-11-12",
+    "food": "Tony’s Sombrero entrée and drink",
+    "source": "Daily Messages",
+    "start": "16:30",
+    "end": "18:00",
+    "location": "Davis Center 107",
+    "url": "https://events.williams.edu/event/cdc-tapsi-committee-listening-session/",
+    "eligibility": "Specific group",
+    "rsvp": true
+  },
+  {
+    "title": "Peer Health Cooking Event",
+    "date": "2026-11-12",
+    "food": "Charcuterie board, 1905 salad, fresh fruit",
+    "source": "Daily Messages",
+    "start": "17:00",
+    "end": "19:00",
+    "location": "Davis Center Kitchen",
+    "url": "https://events.williams.edu/event/peer-health-charcuterie-board-cooking-event-on-thursday-11-12-5-7-pm/",
+    "eligibility": "Check invitation"
+  },
+  {
+    "title": "ARK Magazine Dinner with Graduate Art Students",
+    "date": "2026-11-12",
+    "food": "Blue Mango dinner",
+    "source": "Daily Messages",
+    "start": "18:00",
+    "end": "20:00",
+    "location": "Perry Library",
+    "url": "https://events.williams.edu/event/ark-magazine-dinner-with-graduate-art-students-thursday-6-8pm/",
+    "eligibility": "Open to all"
+  },
+  {
+    "title": "WOC Sunrise Hike at Pine Cobble",
+    "date": "2026-11-13",
+    "food": "Breakfast snacks and beverages",
+    "source": "Williams Outing Club newsletter",
+    "start": "05:55",
+    "end": "08:45",
+    "location": "Paresky Center, Park Street side",
+    "eligibility": "Check invitation",
+    "rsvp": true
+  },
+  {
+    "title": "Career Paths and the Intersection of Identities",
+    "date": "2026-11-13",
+    "food": "Tony’s Sombrero lunch and dessert",
+    "source": "Bolin Weekend announcement",
+    "start": "12:00",
+    "end": "13:30",
+    "location": "Davis Center Multipurpose Room and breakout rooms",
+    "url": "https://alumni.williams.edu/bolin/",
+    "eligibility": "Williams students",
+    "rsvp": true
+  },
+  {
+    "title": "CASO Shanghai Jazz Night",
+    "date": "2026-11-13",
+    "food": "Drinks and bites",
+    "source": "Daily Messages",
+    "start": "20:30",
+    "end": "22:00",
+    "location": "Perry Goat Room",
+    "url": "https://events.williams.edu/event/shanghai-jazz-night-this-friday-830-10pm-in-perry-goat-room-with-caso/",
+    "eligibility": "Check invitation"
+  },
+  {
+    "title": "Eph Underground",
+    "date": "2026-11-20",
+    "food": "Food and drinks",
+    "source": "Campus email",
+    "location": "Goodrich Hall",
+    "eligibility": "Check invitation"
+  },
+  {
+    "title": "STEM+ Student–Faculty Dinner",
+    "date": "2026-11-22",
+    "food": "Dinner",
+    "source": "Daily Messages",
+    "start": "17:00",
+    "location": "Dodd Dining",
+    "url": "https://events.williams.edu/event/free-food-with-stem-profs-rsvp-for-the-student-faculty-dinner-on-nov-22-at-5-pm-in-dodd-os/",
+    "eligibility": "Check invitation",
+    "rsvp": true
+  },
+  {
+    "title": "OIT Mock Semester",
+    "date": "2027-01-11",
+    "food": "Snacks and drinks",
+    "source": "Daily Messages",
+    "start": "09:00",
+    "end": "16:00",
+    "location": "OIT testing lab",
+    "url": "https://events.williams.edu/event/mock-semester-participation-3/",
+    "eligibility": "Specific group"
+  },
+  {
+    "title": "OIT Mock Semester",
+    "date": "2027-01-12",
+    "food": "Snacks and drinks",
+    "source": "Daily Messages",
+    "start": "09:00",
+    "end": "16:00",
+    "location": "OIT testing lab",
+    "url": "https://events.williams.edu/event/mock-semester-participation-3/",
+    "eligibility": "Specific group"
+  },
+  {
+    "title": "OIT Mock Semester",
+    "date": "2027-01-13",
+    "food": "Snacks and drinks",
+    "source": "Daily Messages",
+    "start": "09:00",
+    "end": "16:00",
+    "location": "OIT testing lab",
+    "url": "https://events.williams.edu/event/mock-semester-participation-3/",
+    "eligibility": "Specific group"
+  },
+  {
+    "title": "OIT Mock Semester",
+    "date": "2027-01-14",
+    "food": "Snacks and drinks",
+    "source": "Daily Messages",
+    "start": "09:00",
+    "end": "16:00",
+    "location": "OIT testing lab",
+    "url": "https://events.williams.edu/event/mock-semester-participation-3/",
+    "eligibility": "Specific group"
+  },
+  {
+    "title": "OIT Mock Semester",
+    "date": "2027-01-15",
+    "food": "Snacks and drinks",
+    "source": "Daily Messages",
+    "start": "09:00",
+    "end": "16:00",
+    "location": "OIT testing lab",
+    "url": "https://events.williams.edu/event/mock-semester-participation-3/",
+    "eligibility": "Specific group"
+  }
+]

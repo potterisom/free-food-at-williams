@@ -20,18 +20,25 @@ const displayTime = time => {
 };
 let week = monday(current), selected = '';
 let rows = [], failures = new Set(), ready = false, scan = 0;
-const opened = new Set();
 const search = $('search'), food = $('food'), eligibility = $('eligibility');
 const shown = () => {
   const query = search.value.trim().toLocaleLowerCase();
   return rows.filter(event => (!food.value || event.categories.includes(food.value))
     && (!eligibility.value || event.eligibility === eligibility.value)
-    && (!query || [event.title,event.food,event.location,event.eligibility].join(' ').toLocaleLowerCase().includes(query)));
+    && (!query || [event.title,event.food,event.location,event.eligibility,event.source].join(' ').toLocaleLowerCase().includes(query)));
 };
 function showStatus() {
   const status = $('source-status');
   status.textContent = failures.has('Williams calendar') ? 'Calendar update unavailable.' : '';
   status.hidden = !status.textContent;
+}
+function sourceLink(event,label) {
+  if (!event.url) return null;
+  const link = make('a',label);
+  link.href = event.url;
+  link.target = '_blank';
+  link.rel = 'noreferrer noopener';
+  return link;
 }
 function listing(event) {
   const row = make('article', '', 'event');
@@ -42,11 +49,9 @@ function listing(event) {
   dot.setAttribute('aria-hidden','true');
   const card = make('div', '', 'card');
   const title = make('h3');
-  const link = make('a', event.title);
-  link.href = event.url;
-  link.target = '_blank';
-  link.rel = 'noreferrer noopener';
-  title.append(link);
+  const link = sourceLink(event,event.title);
+  if (link) title.append(link);
+  else title.textContent = event.title;
   const meta = make('div', '', 'meta');
   const badge = make('span', event.food, 'food');
   badge.dataset.kind = event.categories[0] || '';
@@ -55,23 +60,14 @@ function listing(event) {
   if (event.eligibility !== 'Check listing') meta.append(make('span', event.eligibility));
   if (event.rsvp) meta.append(make('span','RSVP'));
   if (event.limited) meta.append(make('span','While supplies last'));
-  const details = make('details');
-  const key = [event.date,event.start,event.title].join('|');
-  details.open = opened.has(key);
-  details.addEventListener('toggle', () => details.open ? opened.add(key) : opened.delete(key));
-  const extra = make('div', '', 'details');
-  const original = make('a', event.source);
-  original.href = event.url;
-  original.target = '_blank';
-  original.rel = 'noreferrer noopener';
-  extra.append(original);
-  details.append(make('summary','Details'),extra);
+  const source = sourceLink(event,event.source) || make('span',event.source);
+  source.classList.add('event-source');
   const actions = make('div','','card-actions');
   const calendarLink = make('a','Add to Google Calendar');
   calendarLink.href = googleCalendarLink(event);
   calendarLink.target = '_blank';
   calendarLink.rel = 'noreferrer noopener';
-  actions.append(details,calendarLink);
+  actions.append(source,calendarLink);
   card.append(title,meta,actions);
   row.append(at,dot,card);
   return row;
@@ -151,6 +147,7 @@ async function load() {
   showStatus();
   render();
   let saved;
+  let withdrawals = [];
   try {
     const response = await fetch('./events.json', {signal:AbortSignal.timeout(9000)});
     if (!response.ok) throw new Error('Feed unavailable');
@@ -166,13 +163,14 @@ async function load() {
   if (rows.length) render();
   const stale = !saved || Date.now() - Date.parse(saved.updatedAt) > 26 * 60 * 60 * 1000;
   const publicRead = (url,options)=>fetch(url,{...options,credentials:'omit'});
-  const supplemental = (!saved?.departmentsComplete || stale) && refreshDepartments(attempt,publicRead);
+  const supplemental = (!saved?.departmentsComplete || stale) && refreshDepartments(attempt,publicRead,()=>withdrawals);
   if (!saved?.complete || stale) {
     try {
       const live = await calendar(lower,upper,publicRead);
       if (attempt !== scan) return;
       const retained = rows.filter(event => event.source !== 'Williams calendar' || !live.complete);
-      rows = mergeEvents([...live.events,...retained],live.cancellations);
+      withdrawals = live.cancellations;
+      rows = mergeEvents([...retained,...live.events],withdrawals);
       if (!live.complete) failures.add('Williams calendar');
     } catch {
       if (attempt === scan) failures.add('Williams calendar');
@@ -181,7 +179,7 @@ async function load() {
   if (attempt === scan) {showStatus(); render();}
   await supplemental;
 }
-async function refreshDepartments(attempt,publicRead) {
+async function refreshDepartments(attempt,publicRead,getWithdrawals) {
   try {
     const groups = await departmentDirectory(publicRead);
     let group = 0;
@@ -189,7 +187,7 @@ async function refreshDepartments(attempt,publicRead) {
       while (group < groups.length && attempt === scan) {
         const data = await departmentPosts(groups[group++],lower,upper,publicRead);
         if (attempt === scan && data.events.length) {
-          rows = mergeEvents([...rows,...data.events]);
+          rows = mergeEvents([...rows,...data.events],getWithdrawals());
           render();
         }
       }

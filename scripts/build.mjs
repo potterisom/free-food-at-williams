@@ -1,10 +1,17 @@
 import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {LOOKAHEAD_DAYS, mergeEvents, shift, today} from '../src/events.mjs';
 import {calendar, departmentDirectory, departmentPosts, departments} from '../src/sources.mjs';
+import {reviewedListings} from './reviewed-listings.mjs';
 
 const date = today();
 const from = shift(date,-6), to = shift(date,LOOKAHEAD_DAYS);
 const seed = JSON.parse(await readFile('data/public-seed.json','utf8'));
+const reviewed = reviewedListings(JSON.parse(await readFile('data/reviewed-listings.json','utf8')),from,to);
+const previous = await fetch('https://potterisom.github.io/free-food-at-williams/events.json', {signal:AbortSignal.timeout(5000)})
+  .then(response=>response.ok ? response.json() : null).catch(()=>null);
+const retainedPublic = Array.isArray(previous?.events) ? previous.events.filter(row =>
+  !row.reviewed && ['Williams calendar','Department website'].includes(row.source) && row.url) : [];
+const baseline = mergeEvents([...retainedPublic,...seed.events]);
 const publicFetch = (url, options) => fetch(url, {...options,headers:{
   ...options.headers, 'User-Agent':'Williams campus food calendar (+https://github.com/potterisom/free-food-at-williams)',
   Accept:'application/json, text/html, application/rss+xml;q=0.9, */*;q=0.5'
@@ -41,14 +48,14 @@ await Promise.all(Array.from({length:4},scan));
 if (!main.complete) console.warn('Calendar refresh was incomplete:', jobs[0].reason?.message || 'one or more calendar pages failed');
 if (jobs[1].status === 'rejected') console.warn('Department directory refresh failed:',jobs[1].reason?.message);
 if (!groups.length) console.warn('The public department directory was unavailable.');
-const retained = seed.events.filter(event => event.date >= from && event.date <= to &&
+const retained = baseline.filter(event => event.date >= from && event.date <= to &&
   (event.source === 'Williams calendar' ? !main.complete : departmentResponses === 0));
-const events = mergeEvents([...main.events,...supplemental,...retained],main.cancellations)
-  .filter(event => event.url)
-  .map(({title,date,start,end,food,categories,location,eligibility,rsvp,limited,url,source,priority}) =>
-    ({title,date,start,end,food,categories,location,eligibility,rsvp,limited,url,source,priority}));
+const events = mergeEvents([...reviewed,...main.events,...supplemental,...retained],main.cancellations)
+  .filter(event => event.url || event.reviewed)
+  .map(({title,date,start,end,food,categories,location,eligibility,rsvp,limited,url,source,priority,reviewed}) =>
+    ({title,date,start,end,food,categories,location,eligibility,rsvp,limited,url,source,priority,reviewed}));
 await mkdir('_site',{recursive:true});
 for (const file of ['index.html','style.css','app.js','events.mjs','sources.mjs']) await copyFile('src/'+file,'_site/'+file);
 await writeFile('_site/.nojekyll','');
-await writeFile('_site/events.json',JSON.stringify({events,complete:main.complete,departmentsComplete:departmentResponses > 0,updatedAt:main.complete ? new Date().toISOString() : seed.updatedAt})+'\n');
-console.log('Prepared '+events.length+' public listings from the calendar and '+groups.flat().length+' department sites.');
+await writeFile('_site/events.json',JSON.stringify({events,complete:main.complete,departmentsComplete:departmentResponses > 0,updatedAt:main.complete ? new Date().toISOString() : previous?.updatedAt || seed.updatedAt})+'\n');
+console.log('Prepared '+events.length+' listings, including '+reviewed.length+' reviewed dates. Checked '+groups.flat().length+' department sites.');

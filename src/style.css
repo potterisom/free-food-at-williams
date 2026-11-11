@@ -76,7 +76,7 @@ h1 { margin: 0; font: 400 clamp(25px, 4vw, 36px)/1.1 var(--serif); letter-spacin
 .food[data-kind="Meals"] { background: var(--meal); color: var(--meal-ink); }
 .food[data-kind="Drinks"] { background: var(--drink); color: var(--drink-ink); }
 .card-actions { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 12px; }
-.card details { font-size: inherit; }
+.event-source { color: var(--quiet); }
 .card summary { width: fit-content; color: var(--purple); cursor: pointer; }
 .details { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; color: var(--quiet); }
 @media (max-width: 710px) {
