@@ -65,5 +65,5 @@ const events = mergeEvents([...reviewed,...previousReview,...main.events,...supp
 await mkdir('_site',{recursive:true});
 for (const file of ['index.html','style.css','app.js','events.mjs','sources.mjs']) await copyFile('src/'+file,'_site/'+file);
 await writeFile('_site/.nojekyll','');
-await writeFile('_site/events.json',JSON.stringify({events,complete:main.complete,departmentsComplete:departmentResponses > 0,updatedAt:main.complete ? new Date().toISOString() : previous?.updatedAt || seed.updatedAt})+'\n');
+await writeFile('_site/events.json',JSON.stringify({events,complete:main.complete,departmentsComplete:departmentResponses > 0,reviewedImported:liveReview !== null,updatedAt:main.complete ? new Date().toISOString() : previous?.updatedAt || seed.updatedAt})+'\n');
 console.log('Prepared '+events.length+' listings, including '+reviewed.length+' reviewed dates. Checked '+groups.flat().length+' department sites.');

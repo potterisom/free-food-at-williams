@@ -86,6 +86,7 @@ h1 { margin: 0; font: 400 clamp(25px, 4vw, 36px)/1.1 var(--serif); letter-spacin
   aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 13px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .search { grid-column: 1 / -1; }
   .filter-row, .link { margin-top: 0; }
+  .filter-row { grid-column: 1 / -1; }
   main { padding: 15px 16px 42px; }
   .week { gap: 4px; grid-template-columns: 25px minmax(0, 1fr) 25px; }
   .days { gap: 3px; }

@@ -20,12 +20,11 @@ const displayTime = time => {
 };
 let week = monday(current), selected = '';
 let rows = [], failures = new Set(), ready = false, scan = 0;
-const search = $('search'), food = $('food'), eligibility = $('eligibility');
+const search = $('search'), food = $('food');
 const shown = () => {
   const query = search.value.trim().toLocaleLowerCase();
   return rows.filter(event => (!food.value || event.categories.includes(food.value))
-    && (!eligibility.value || event.eligibility === eligibility.value)
-    && (!query || [event.title,event.food,event.location,event.eligibility,event.source].join(' ').toLocaleLowerCase().includes(query)));
+    && (!query || [event.title,event.food,event.location,event.source].join(' ').toLocaleLowerCase().includes(query)));
 };
 function showStatus() {
   const status = $('source-status');
@@ -57,7 +56,6 @@ function listing(event) {
   badge.dataset.kind = event.categories[0] || '';
   meta.append(badge);
   if (event.location) meta.append(make('span', event.location));
-  if (event.eligibility !== 'Check listing') meta.append(make('span', event.eligibility));
   if (event.rsvp) meta.append(make('span','RSVP'));
   if (event.limited) meta.append(make('span','While supplies last'));
   const source = sourceLink(event,event.source) || make('span',event.source);
@@ -80,7 +78,7 @@ function render() {
   const startNumber = Number(week.slice(-2)), endNumber = Number(shift(week,6).slice(-2));
   $('date').textContent = selected ? displayDay(selected) : week === monday(current) ? 'Upcoming' :
     firstMonth + ' ' + startNumber + '–' + (firstMonth === lastMonth ? '' : lastMonth + ' ') + endNumber;
-  $('clear').hidden = !(search.value || food.value || eligibility.value);
+  $('clear').hidden = !(search.value || food.value);
   $('previous').disabled = shift(week,-1) < lower;
   $('next').disabled = shift(week,7) > upper;
   const dayNodes = [];
@@ -107,7 +105,7 @@ function render() {
     week === monday(current) ? event.date >= current : event.date >= week && event.date <= shift(week,6));
   if (!visible.length) {
     const empty = make('p', !ready ? 'Loading events…' : failures.has('Williams calendar') && !rows.length ? 'Events couldn’t load.' :
-      search.value || food.value || eligibility.value ? 'No matching events.' : 'No events found.', 'empty');
+      search.value || food.value ? 'No matching events.' : 'No events found.', 'empty');
     if (ready && failures.has('Williams calendar') && !rows.length) {
       const retry = make('button','Retry','link');
       retry.type = 'button';
@@ -197,8 +195,8 @@ async function refreshDepartments(attempt,publicRead,getWithdrawals) {
     // Keep the last verified department listings if the directory is unavailable.
   }
 }
-for (const node of [search,food,eligibility]) node.addEventListener('input',render);
-$('clear').addEventListener('click', () => {search.value = food.value = eligibility.value = ''; search.focus(); render();});
+for (const node of [search,food]) node.addEventListener('input',render);
+$('clear').addEventListener('click', () => {search.value = food.value = ''; search.focus(); render();});
 $('today').addEventListener('click', () => {week = monday(current); selected = current; render();});
 for (const [id, offset] of [['previous',-7],['next',7]]) {
   $(id).addEventListener('click', () => {week = shift(week,offset); selected = ''; render();});

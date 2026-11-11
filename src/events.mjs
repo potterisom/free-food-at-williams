@@ -126,7 +126,7 @@ export function makeEvent(raw, from, to) {
     : /\b(?:williams community|students,? faculty,? (?:and|&) staff|williams campus community|campus community)\b/i.test(access) ? 'Williams community'
     : /\b(?:williams students|for students only|students only)\b/i.test(access) ? 'Williams students'
     : /\b(?:open to (?:the (?:general )?public|all)|all are welcome|everyone (?:is welcome|welcome))\b/i.test(access) ? 'Open to all' : 'Check listing';
-  const rsvp = /\b(?:rsvp|registration|register(?:ed)?|sign[- ]?up|reserve your (?:seat|spot))\b/i.test(access) && !/\b(?:rsvp|registration|sign[- ]?up) (?:is )?(?:optional|not required)|no (?:rsvp|registration|sign[- ]?up) (?:is )?(?:needed|required)\b/i.test(access);
+  const rsvp = /\b(?:rsvp|registration|register(?:ed)?|sign[- ]?up|reserve your (?:seat|spot))\b/i.test(access) && !/\b(?:rsvp|registration|sign[- ]?up) (?:is )?(?:optional|not required|encouraged|appreciated)|no (?:rsvp|registration|sign[- ]?up) (?:is )?(?:needed|required)\b/i.test(access);
   return {
     title, date, start, end, food: food.food, categories: food.categories,
     location: plain(raw.location).replace(/\s+/g, ' ').slice(0, 150),
