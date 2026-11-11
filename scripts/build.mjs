@@ -6,7 +6,13 @@ import {reviewedListings} from './reviewed-listings.mjs';
 const date = today();
 const from = shift(date,-6), to = shift(date,LOOKAHEAD_DAYS);
 const seed = JSON.parse(await readFile('data/public-seed.json','utf8'));
-const reviewed = reviewedListings(JSON.parse(await readFile('data/reviewed-listings.json','utf8')),from,to);
+const savedReview = JSON.parse(await readFile('data/reviewed-listings.json','utf8'));
+const liveReview = await readFile('data/reviewed-live.json','utf8').then(JSON.parse).catch(error => {
+  if (error.code === 'ENOENT') return null;
+  throw error;
+});
+const sourceNames = new Map(savedReview.map(row=>[row.title,row.source]));
+const reviewed = reviewedListings(liveReview?.map(row=>({...row,source:sourceNames.get(row.title) || row.source})) || savedReview,from,to);
 const previous = await fetch('https://potterisom.github.io/free-food-at-williams/events.json', {signal:AbortSignal.timeout(5000)})
   .then(response=>response.ok ? response.json() : null).catch(()=>null);
 const retainedPublic = Array.isArray(previous?.events) ? previous.events.filter(row =>
@@ -50,7 +56,9 @@ if (jobs[1].status === 'rejected') console.warn('Department directory refresh fa
 if (!groups.length) console.warn('The public department directory was unavailable.');
 const retained = baseline.filter(event => event.date >= from && event.date <= to &&
   (event.source === 'Williams calendar' ? !main.complete : departmentResponses === 0));
-const events = mergeEvents([...reviewed,...main.events,...supplemental,...retained],main.cancellations)
+const previousReview = !liveReview && Array.isArray(previous?.events) ? previous.events.filter(row =>
+  row.reviewed && row.date >= from && row.date <= to) : [];
+const events = mergeEvents([...reviewed,...previousReview,...main.events,...supplemental,...retained],main.cancellations)
   .filter(event => event.url || event.reviewed)
   .map(({title,date,start,end,food,categories,location,eligibility,rsvp,limited,url,source,priority,reviewed}) =>
     ({title,date,start,end,food,categories,location,eligibility,rsvp,limited,url,source,priority,reviewed}));

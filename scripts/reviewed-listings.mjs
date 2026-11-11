@@ -1,6 +1,6 @@
 import {foodEvidence, mergeEvents, shift, sourceUrl, validDay} from '../src/events.mjs';
 
-const fields = new Set(['title','date','start','end','food','location','source','eligibility','rsvp','limited','url','repeat']);
+const fields = new Set(['title','date','start','end','food','location','source','eligibility','rsvp','limited','url','repeat','skipDates']);
 const eligibility = new Set(['Open to all','Williams community','Williams students','Specific group','Check invitation','Check listing']);
 const clock = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const contact = /https?:\/\/|[a-z\d._%+-]+@[a-z\d.-]+\.[a-z]{2,}|\b\d{3}[-. ]\d{3}[-. ]\d{4}\b/i;
@@ -19,6 +19,7 @@ export function reviewedListings(records, from, to) {
     if ((entry.start && !clock.test(entry.start)) ||
       (entry.end && (!clock.test(entry.end) || !entry.start || entry.end <= entry.start))) throw invalid();
     if (entry.repeat !== undefined && entry.repeat !== 'weekly') throw invalid();
+    if (entry.skipDates !== undefined && (entry.repeat !== 'weekly' || !Array.isArray(entry.skipDates) || !entry.skipDates.every(validDay))) throw invalid();
     const {title,date,start='',end='',food,location='',source} = entry;
     const categories = foodEvidence('', 'Complimentary ' + food + ' will be served.')?.categories || [];
     const event = {
@@ -30,7 +31,9 @@ export function reviewedListings(records, from, to) {
     if (!entry.repeat) return date >= from && date <= to ? [event] : [];
     const first = date >= from ? date : shift(from,(weekday(date)-weekday(from)+7)%7);
     const occurrences = [];
-    for (let day=first; day<=to; day=shift(day,7)) occurrences.push({...event,date:day});
+    for (let day=first; day<=to; day=shift(day,7)) {
+      if (!entry.skipDates?.includes(day)) occurrences.push({...event,date:day});
+    }
     return occurrences;
   }));
 }

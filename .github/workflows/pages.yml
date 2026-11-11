@@ -4,7 +4,7 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: "37 7 * * *"
+    - cron: "15 8 * * *"
       timezone: America/New_York
 
 concurrency:
@@ -24,6 +24,10 @@ jobs:
         with:
           node-version: "24"
       - run: npm test
+      - name: Pull reviewed campus listings
+        env:
+          WILLIAMS_FEED_ACCESS: ${{ secrets.WILLIAMS_FEED_ACCESS }}
+        run: node scripts/pull-reviewed.mjs
       - run: npm run build
       - uses: actions/upload-pages-artifact@v4
         with:

@@ -2,3 +2,4 @@ _site/
 .env
 .env.*
 .DS_Store
+data/reviewed-live.json
