@@ -1,5 +1,5 @@
 import {LOOKAHEAD_DAYS, today, shift, mergeEvents, googleCalendarLink} from './events.mjs';
-import {calendar} from './sources.mjs';
+import {calendar, departmentDirectory, departmentPosts} from './sources.mjs';
 
 const $ = id => document.getElementById(id);
 const make = (tag, text, className) => {
@@ -164,9 +164,12 @@ async function load() {
   if (attempt !== scan) return;
   ready = true;
   if (rows.length) render();
-  if (!saved?.complete || Date.now() - Date.parse(saved.updatedAt) > 26 * 60 * 60 * 1000) {
+  const stale = !saved || Date.now() - Date.parse(saved.updatedAt) > 26 * 60 * 60 * 1000;
+  const publicRead = (url,options)=>fetch(url,{...options,credentials:'omit'});
+  const supplemental = (!saved?.departmentsComplete || stale) && refreshDepartments(attempt,publicRead);
+  if (!saved?.complete || stale) {
     try {
-      const live = await calendar(lower,upper,(url,options)=>fetch(url,{...options,credentials:'omit'}));
+      const live = await calendar(lower,upper,publicRead);
       if (attempt !== scan) return;
       const retained = rows.filter(event => event.source !== 'Williams calendar' || !live.complete);
       rows = mergeEvents([...live.events,...retained],live.cancellations);
@@ -176,6 +179,25 @@ async function load() {
     }
   }
   if (attempt === scan) {showStatus(); render();}
+  await supplemental;
+}
+async function refreshDepartments(attempt,publicRead) {
+  try {
+    const groups = await departmentDirectory(publicRead);
+    let group = 0;
+    async function scanGroup() {
+      while (group < groups.length && attempt === scan) {
+        const data = await departmentPosts(groups[group++],lower,upper,publicRead);
+        if (attempt === scan && data.events.length) {
+          rows = mergeEvents([...rows,...data.events]);
+          render();
+        }
+      }
+    }
+    await Promise.all(Array.from({length:3},scanGroup));
+  } catch {
+    // Keep the last verified department listings if the directory is unavailable.
+  }
 }
 for (const node of [search,food,eligibility]) node.addEventListener('input',render);
 $('clear').addEventListener('click', () => {search.value = food.value = eligibility.value = ''; search.focus(); render();});
