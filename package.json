@@ -1,0 +1,9 @@
+{
+  "name": "free-food-at-williams",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test"
+  }
+}

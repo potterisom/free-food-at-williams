@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Find free food at Williams College events.">
+<title>Free Food at Williams</title>
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./app.js"></script>
+</head>
+<body>
+<header class="top"><div class="top-inner"><span class="college">Williams College</span><span class="brand">Free Food at Williams</span></div></header>
+<div class="shell">
+  <aside aria-label="Filters">
+    <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search events" aria-label="Search events" autocomplete="off"></label>
+    <div class="filter-row">
+      <label for="food">Food type</label>
+      <select id="food"><option value="">All food</option><option>Meals</option><option>Snacks</option><option>Drinks</option></select>
+    </div>
+    <div class="filter-row">
+      <label for="eligibility">Eligibility</label>
+      <select id="eligibility"><option value="">Everyone</option><option>Open to all</option><option>Williams community</option><option>Williams students</option><option>Specific group</option><option>Check listing</option></select>
+    </div>
+    <button id="clear" class="link" type="button" hidden>Clear filters</button>
+  </aside>
+  <main>
+    <nav class="week" aria-label="Event calendar">
+      <button class="arrow" id="previous" type="button" aria-label="Previous week">‹</button>
+      <div id="days" class="days"></div>
+      <button class="arrow" id="next" type="button" aria-label="Next week">›</button>
+    </nav>
+    <div class="heading">
+      <h1 id="date">Upcoming</h1>
+      <button id="today" class="button" type="button">Today</button>
+    </div>
+    <p id="source-status" class="status" role="status" hidden></p>
+    <div id="events" aria-live="polite" aria-busy="true"><p class="empty">Loading events…</p></div>
+    <noscript><p>Enable JavaScript to view the feed. <a href="https://events.williams.edu/">Williams Events</a></p></noscript>
+  </main>
+</div>
+</body>
+</html>
