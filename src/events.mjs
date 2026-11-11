@@ -3,7 +3,10 @@ export const ZONE = 'America/New_York';
 const iso = /^\d{4}-\d\d-\d\d$/;
 const time = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const fmt = new Intl.DateTimeFormat('en-CA', {timeZone: ZONE, year: 'numeric', month: '2-digit', day: '2-digit'});
-export const today = (date = new Date()) => fmt.format(date);
+export function today(date = new Date()) {
+  const parts = Object.fromEntries(fmt.formatToParts(date).map(({type,value})=>[type,value]));
+  return [parts.year,parts.month,parts.day].join('-');
+}
 export function validDay(day) {
   if (!iso.test(day)) return false;
   const date = new Date(day + 'T12:00:00Z');

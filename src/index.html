@@ -31,6 +31,14 @@
     </div>
     <p id="source-status" class="status" role="status" hidden></p>
     <div id="events" aria-live="polite" aria-busy="true"><p class="empty">Loading events…</p></div>
+    <p id="startup-error" class="empty" hidden>The calendar couldn’t start. <a href="./">Reload the calendar</a></p>
+    <script>
+      window.setTimeout(function () {
+        if (document.getElementById('days').childElementCount) return;
+        document.getElementById('events').hidden = true;
+        document.getElementById('startup-error').hidden = false;
+      }, 8000);
+    </script>
     <noscript><p>Enable JavaScript to view the feed. <a href="https://events.williams.edu/">Williams Events</a></p></noscript>
   </main>
 </div>

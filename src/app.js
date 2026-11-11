@@ -100,6 +100,8 @@ function render() {
   strip.replaceChildren(...dayNodes);
   if (active) dayNodes.find(button => button.dataset.day === active)?.focus({preventScroll:true});
   const list = $('events');
+  list.hidden = false;
+  $('startup-error').hidden = true;
   list.setAttribute('aria-busy', String(!ready));
   const visible = matches.filter(event => selected ? event.date === selected :
     week === monday(current) ? event.date >= current : event.date >= week && event.date <= shift(week,6));
@@ -147,7 +149,7 @@ async function load() {
   let saved;
   let withdrawals = [];
   try {
-    const response = await fetch('./events.json', {signal:AbortSignal.timeout(9000)});
+    const response = await fetch('./events.json', {cache:'no-cache',signal:AbortSignal.timeout(9000)});
     if (!response.ok) throw new Error('Feed unavailable');
     saved = await response.json();
     if (!Array.isArray(saved.events) || !saved.updatedAt) throw new Error('Invalid feed');

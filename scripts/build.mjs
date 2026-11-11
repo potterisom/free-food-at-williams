@@ -1,6 +1,7 @@
-import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {LOOKAHEAD_DAYS, mergeEvents, shift, today} from '../src/events.mjs';
 import {calendar, departmentDirectory, departmentPosts, departments} from '../src/sources.mjs';
+import {writeFrontend} from './frontend.mjs';
 import {reviewedListings} from './reviewed-listings.mjs';
 
 const date = today();
@@ -63,7 +64,7 @@ const events = mergeEvents([...reviewed,...previousReview,...main.events,...supp
   .map(({title,date,start,end,food,categories,location,eligibility,rsvp,limited,url,source,priority,reviewed}) =>
     ({title,date,start,end,food,categories,location,eligibility,rsvp,limited,url,source,priority,reviewed}));
 await mkdir('_site',{recursive:true});
-for (const file of ['index.html','style.css','app.js','events.mjs','sources.mjs']) await copyFile('src/'+file,'_site/'+file);
+await writeFrontend('src','_site');
 await writeFile('_site/.nojekyll','');
 await writeFile('_site/events.json',JSON.stringify({events,complete:main.complete,departmentsComplete:departmentResponses > 0,reviewedImported:liveReview !== null,updatedAt:main.complete ? new Date().toISOString() : previous?.updatedAt || seed.updatedAt})+'\n');
 console.log('Prepared '+events.length+' listings, including '+reviewed.length+' reviewed dates. Checked '+groups.flat().length+' department sites.');
