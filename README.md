@@ -7,3 +7,5 @@ The private Site's calendar link opens this published calendar. GitHub Actions c
 Run `npm test` and `npm run build` with Node 24. The static site is written to `_site/`. The public build also includes the reviewed event details in `data/reviewed-listings.json`, with source and eligibility labels. The file accepts basic event fields and official Williams URLs. It must never contain Gmail URLs, message IDs, raw email content, or contact information. Weekly entries are expanded over the calendar’s rolling date window.
 
 The Actions secret `WILLIAMS_FEED_ACCESS` enables a read-only import of the private site's public projection. Keep the values in Actions secrets and the private site runtime. If the export fails, the workflow fails and GitHub continues serving the last successful deployment.
+
+Each build carries forward the last published events, including past dates, and applies explicit cancellations from Williams sources or the reviewed inbox feed. Cancellation notices are carried forward as well so an outdated source cannot restore a canceled event. If the previous published feed cannot be read, the workflow leaves the existing deployment live.

@@ -54,7 +54,8 @@ const noFood = /\b(?:no (?:free )?(?:food|lunch|dinner|refreshments|snacks)|(?:f
 const priced = /\b(?:available (?:only )?for purchase|for purchase|for sale|sold separately|available to (?:buy|purchase)|cash only|meal swipe required|sold at)\b|(?:\$|USD\s*)\s*[1-9]\d*(?:\.\d+)?/i;
 const bringMeal = /\b(?:bring|pack) (?:your own|a) (?:food|lunch|dinner|snacks?|meal|drinks?|beverages?)|\b(?:food|lunch|dinner|snacks?|meals?|drinks?) (?:is |are )?(?:bring[- ]your[- ]own|byo)\b/i;
 const availability = /\b(?:while supplies last|while they last|first come,? first served|limited (?:quantities|supply))\b/i;
-const canceled = /\b(?:cancel(?:l)?ed|postponed|rescheduled)\b/i;
+const canceledPrefix = /^\s*(?:update[ :–-]+)?cancel(?:l)?ed(?:\s*[:–—-]\s*|\s+|$)/i;
+const canceledSuffix = /(?:\s*[:–—-]\s*|\s*[([]\s*)cancel(?:l)?ed[)\]]?\s*$/i;
 const blockedTitle = /\b(?:receipt|order confirmation|order has shipped|delivery order|catering invoice)\b/i;
 const tagOf = term => ({bite:'Bites',drink:'Drinks',fruits:'Fruit'})[term.toLowerCase()] || term[0].toUpperCase() + term.slice(1).toLowerCase();
 export function foodEvidence(title, body, cost = '') {
@@ -104,10 +105,11 @@ export function foodEvidence(title, body, cost = '') {
 export function cancellation(raw, from, to) {
   const title = plain(raw.title).replace(/\s+/g, ' ').slice(0,210);
   const body = plain(raw.body);
-  if (!(raw.canceled || canceled.test(title) || /\b(?:the |this )?(?:event|program|session|meeting|reception|lunch|dinner) (?:is|has been|was) (?:cancel(?:l)?ed|postponed|rescheduled)\b/i.test(body))) return null;
+  const notice = /(?:^|[.!?,]\s+|\n)(?:the |this )?(?:event|program|session|meeting|reception|lunch|dinner) (?:is|has been|was) cancel(?:l)?ed\b/i;
+  if (!(raw.canceled || canceledPrefix.test(title) || canceledSuffix.test(title) || notice.test(body))) return null;
   if (!validDay(raw.date) || raw.date < from || raw.date > to) return null;
   return {
-    title: title.replace(/^\s*(?:update[ :–-]+)?(?:cancel(?:l)?ed|postponed|rescheduled)\s*[:–-]?\s*/i, ''),
+    title: title.replace(canceledPrefix,'').replace(canceledSuffix,'').trim(),
     date:raw.date, start:raw.start || '', url:sourceUrl(raw.url), priority:raw.priority || 0
   };
 }
@@ -176,16 +178,35 @@ function localInstant(day, clock) {
 const titleKey = title => title.normalize('NFKD').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 function sameEvent(a, b) {
   if (a.date !== b.date || (a.start && b.start && a.start !== b.start)) return false;
-  if (a.url && a.url === b.url) return true;
+  if (a.url && a.url === b.url && /\/event\//.test(a.url)) return true;
   return titleKey(a.title) === titleKey(b.title) &&
     (!a.location || !b.location || titleKey(a.location) === titleKey(b.location) || Boolean(a.start && a.start === b.start));
 }
+export function mergeCancellations(notices) {
+  const unique = new Map();
+  for (const notice of notices) {
+    const key = JSON.stringify([notice.date,titleKey(notice.title),notice.start || '',notice.url || '']);
+    if (!unique.has(key)) unique.set(key,notice);
+  }
+  return [...unique.values()];
+}
+function sameCanceledEvent(notice, event) {
+  if (notice.start && event.start && notice.start !== event.start) return false;
+  return (notice.title && titleKey(notice.title) === titleKey(event.title)) ||
+    (notice.url && notice.url === event.url && /\/event\//.test(notice.url));
+}
 export function mergeEvents(events, cancellations = []) {
-  const output = [];
+  const byDay = new Map(), canceledByDay = new Map();
+  for (const notice of cancellations) {
+    if (!canceledByDay.has(notice.date)) canceledByDay.set(notice.date,[]);
+    canceledByDay.get(notice.date).push(notice);
+  }
   for (const event of [...events].sort((a,b) => b.priority - a.priority)) {
-    if (cancellations.some(item => item.priority >= event.priority && sameEvent(item,event))) continue;
-    const duplicate = output.find(old => sameEvent(old,event));
-    if (!duplicate) { output.push({...event}); continue; }
+    if (canceledByDay.get(event.date)?.some(item => sameCanceledEvent(item,event))) continue;
+    if (!byDay.has(event.date)) byDay.set(event.date,[]);
+    const day = byDay.get(event.date);
+    const duplicate = day.find(old => sameEvent(old,event));
+    if (!duplicate) { day.push({...event}); continue; }
     for (const field of ['start', 'end', 'location', 'url', 'email']) {
       if (!duplicate[field] && event[field] && (field !== 'end' || duplicate.start === event.start)) duplicate[field] = event[field];
     }
@@ -194,5 +215,5 @@ export function mergeEvents(events, cancellations = []) {
     duplicate.repeat ||= event.repeat;
     if (duplicate.eligibility === 'Check listing') duplicate.eligibility = event.eligibility;
   }
-  return output.sort((a,b) => a.date.localeCompare(b.date) || (a.start || '99:99').localeCompare(b.start || '99:99') || a.title.localeCompare(b.title));
+  return [...byDay.values()].flat().sort((a,b) => a.date.localeCompare(b.date) || (a.start || '99:99').localeCompare(b.start || '99:99') || a.title.localeCompare(b.title));
 }

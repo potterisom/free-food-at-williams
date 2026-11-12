@@ -111,7 +111,16 @@ function eventTimes(date, reference, candidates) {
     readings.find(row => /^\s*(?:ends?|end time|until)\b/i.test(row.line) && row.times[0] > start)?.times[0];
   return [start,end];
 }
-function proseEvent({title, body, url, reference, source, priority, email, detail = '', location = ''}, from, to) {
+function observedEvent(raw, from, to, cancellations) {
+  const withdrawn = cancellation(raw,from,to);
+  if (withdrawn) {
+    cancellations.push(withdrawn);
+    return null;
+  }
+  if (raw.postponed) return null;
+  return makeEvent(raw,from,to);
+}
+function proseEvent({title, body, url, reference, source, priority, email, detail = '', location = ''}, from, to, cancellations) {
   const clean = plain(body), headline = plain(title);
   const lines = clean.split('\n').slice(0,35);
   const intro = lines.slice(0,12).join('\n').slice(0,1800);
@@ -120,7 +129,7 @@ function proseEvent({title, body, url, reference, source, priority, email, detai
   const labeled = lines.filter(line => /^\s*(?:times?|when|starts?|ends?|end time|until)\b/i.test(line) || /^\s*(?:🕒\s*)?\d{1,2}(?::\d\d)?\s*(?:[-–—]|(?:am|pm)\b)/i.test(line));
   const [start,end] = eventTimes(date,reference,[detail,...sameDate,...labeled,headline]);
   const place = location || clean.match(/^(?:location|where|venue)\s*:\s*([^\n]+)/im)?.[1] || '';
-  return makeEvent({title, body, date, start, end, location: place, url, source, priority, email}, from, to);
+  return observedEvent({title, body, date, start, end, location: place, url, source, priority, email},from,to,cancellations);
 }
 export async function calendar(from, to, fetcher = fetchPublic) {
   const pull = async page => {
@@ -137,7 +146,7 @@ export async function calendar(from, to, fetcher = fetchPublic) {
   const rows = [first, ...pages.flatMap(page => page.status === 'fulfilled' ? [page.value] : [])].flatMap(page => page.events);
   const cancellations = [];
   const events = rows.map(row => {
-    if (row.hide_from_listings || (row.status && !['publish','cancelled','canceled','postponed'].includes(row.status))) return null;
+    if (row.status && !['publish','cancelled','canceled','postponed','rescheduled'].includes(row.status)) return null;
     const start = localFields(row.start_date), end = localFields(row.end_date);
     // Calendar entries sometimes use 12:xx AM for a midday prayer. Preserve the
     // event date and source link when the recorded hours are contradictory.
@@ -146,7 +155,8 @@ export async function calendar(from, to, fetcher = fetchPublic) {
       title: row.title, body: row.description, date: start.date,
       start: row.all_day || suspicious ? '' : start.time, end: end.time, endDate: end.date,
       cost: row.cost, location: row.venue?.venue, url: row.url, source: 'Williams calendar', priority: 3,
-      canceled: /cancel|postpon/i.test(row.event_status || row.status || '')
+      canceled: /cancel/i.test([row.event_status,row.status].join(' ')),
+      postponed: /postpon/i.test([row.event_status,row.status].join(' '))
     };
     if (!raw.start || !raw.end || raw.start === raw.end) {
       const [statedStart,statedEnd] = eventTimes(start.date,start.date || from,
@@ -155,9 +165,8 @@ export async function calendar(from, to, fetcher = fetchPublic) {
       if (!raw.start) raw.start = statedStart || '';
       if (statedEnd && statedStart === raw.start && (!raw.end || raw.end === raw.start)) raw.end = statedEnd;
     }
-    const withdrawn = cancellation(raw,from,to);
-    if (withdrawn) {cancellations.push(withdrawn); return null;}
-    return makeEvent(raw,from,to);
+    if (row.hide_from_listings && !raw.canceled) return null;
+    return observedEvent(raw,from,to,cancellations);
   }).filter(Boolean);
   return {complete, events, cancellations};
 }
@@ -188,7 +197,7 @@ const links = html => [...html.matchAll(/<(a|link)\b([^>]*)>/gi)].flatMap(([,tag
   const href = attrs.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];
   return href ? [{tag, href: decode(href), attrs}] : [];
 });
-function structured(html, base, from, to) {
+function structured(html, base, from, to, cancellations) {
   const rows = [];
   function visit(obj) {
     if (!obj || typeof obj !== 'object') return;
@@ -196,12 +205,13 @@ function structured(html, base, from, to) {
     if ([obj['@type']].flat().some(type => /Event$/.test(type || ''))) {
       const start = localFields(obj.startDate), end = localFields(obj.endDate);
       const costs = [obj.offers].flat().map(offer => Number(offer?.price)).filter(price => price > 0);
-      const event = makeEvent({
+      const event = observedEvent({
         title: obj.name, body: obj.description, date: start.date, start: start.time,
         end: end.time, endDate: end.date, location: obj.location?.name || (typeof obj.location === 'string' ? obj.location : ''),
         url: sourceUrl(obj.url || obj['@id'] || base, base), cost: costs.length ? '$' + costs[0] : '',
-        canceled: /Event(?:Cancelled|Postponed|Rescheduled)/i.test(obj.eventStatus || ''), source: 'Department website', priority: 2
-      }, from, to);
+        canceled: /EventCancel(?:l)?ed/i.test(obj.eventStatus || ''),
+        postponed: /EventPostponed/i.test(obj.eventStatus || ''), source: 'Department website', priority: 2
+      }, from, to, cancellations);
       if (event) rows.push(event);
     }
     Object.values(obj).forEach(visit);
@@ -211,8 +221,8 @@ function structured(html, base, from, to) {
   }
   return rows;
 }
-export function parseDepartment(text, url, from, to) {
-  const rows = structured(text, url, from, to);
+export function parseDepartment(text, url, from, to, cancellations = []) {
+  const rows = structured(text, url, from, to, cancellations);
   for (const match of text.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)) {
     const item = match[1];
     const published = new Date(value(item,'pubDate'));
@@ -220,14 +230,15 @@ export function parseDepartment(text, url, from, to) {
     const event = proseEvent({
       title: value(item,'title'), body: value(item,'content:encoded') || value(item,'description'),
       url: sourceUrl(value(item,'link').trim(), url), reference: today(published), source: 'Department website', priority: 2
-    }, from, to);
+    }, from, to, cancellations);
     if (event) rows.push(event);
   }
   return rows;
 }
 async function scanDepartment(url, from, to, fetcher) {
   const first = await textFromCampus(url, fetcher);
-  const rows = parseDepartment(first.text, first.url, from, to);
+  const cancellations = [];
+  const rows = parseDepartment(first.text, first.url, from, to,cancellations);
   const base = new URL(first.url);
   const found = links(first.text);
   const valid = entry => {
@@ -241,16 +252,17 @@ async function scanDepartment(url, from, to, fetcher) {
   const targets = [...new Set([feed, index].filter(Boolean))];
   const results = await Promise.allSettled(targets.map(target => textFromCampus(target, fetcher)));
   for (const result of results) {
-    if (result.status === 'fulfilled') rows.push(...parseDepartment(result.value.text, result.value.url, from, to));
+    if (result.status === 'fulfilled') rows.push(...parseDepartment(result.value.text, result.value.url, from, to,cancellations));
   }
-  return {rows, complete: results.every(result => result.status === 'fulfilled')};
+  return {rows,cancellations,complete: results.every(result => result.status === 'fulfilled')};
 }
 export async function departments(urls, from, to, fetcher = fetchPublic) {
   const results = await Promise.allSettled(urls.map(url => scanDepartment(url, from, to, fetcher)));
   return {
     checked: results.filter(result => result.status === 'fulfilled').length,
     partial: results.some(result => result.status === 'rejected' || !result.value.complete),
-    events: results.flatMap(result => result.status === 'fulfilled' ? result.value.rows : [])
+    events: results.flatMap(result => result.status === 'fulfilled' ? result.value.rows : []),
+    cancellations: results.flatMap(result => result.status === 'fulfilled' ? result.value.cancellations : [])
   };
 }
 
@@ -264,17 +276,20 @@ export async function departmentPosts(roots, from, to, fetcher = fetchPublic) {
     url.search = new URLSearchParams({per_page:'15',after:shift(from,-45)+'T00:00:00',_fields:'date,link,title,content,excerpt'});
     const posts = await (await request(url,fetcher)).json();
     if (!Array.isArray(posts)) throw new Error('Invalid department feed');
-    return posts.flatMap(post => {
+    const cancellations = [];
+    const events = posts.flatMap(post => {
       const published = localFields(post.date).date;
       if (!validDay(published)) return [];
       const event = proseEvent({
         title:post.title?.rendered || '', body:post.content?.rendered || post.excerpt?.rendered || '',
         url:sourceUrl(post.link), reference:published, source:'Department website', priority:2
-      },from,to);
+      },from,to,cancellations);
       return event ? [event] : [];
     });
+    return {events,cancellations};
   }));
   const available = results.filter(result => result.status === 'fulfilled');
-  return {events:available.flatMap(result=>result.value), checked:available.length, partial:available.length !== results.length};
+  return {events:available.flatMap(result=>result.value.events),cancellations:available.flatMap(result=>result.value.cancellations),
+    checked:available.length, partial:available.length !== results.length};
 }
 

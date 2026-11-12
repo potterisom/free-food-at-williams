@@ -5,6 +5,17 @@ const eligibility = new Set(['Open to all','Williams community','Williams studen
 const clock = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const contact = /https?:\/\/|[a-z\d._%+-]+@[a-z\d.-]+\.[a-z]{2,}|\b\d{3}[-. ]\d{3}[-. ]\d{4}\b/i;
 const weekday = date => new Date(date + 'T12:00:00Z').getUTCDay();
+export function reviewedCancellations(feed) {
+  const notices = feed?.cancellations ?? [];
+  if (!Array.isArray(notices)) throw new Error('Invalid reviewed cancellations');
+  return [...notices,...(feed?.events || []).flatMap(({title,skipDates}) =>
+    (skipDates || []).map(date=>({title,date})))].map(({title,date}) => {
+    if (typeof title !== 'string' || !title.trim() || title.length > 210 || contact.test(title) || /[\r\n<>]/.test(title) || !validDay(date)) {
+      throw new Error('Invalid reviewed cancellation');
+    }
+    return {title,date,priority:3};
+  });
+}
 export function reviewedListings(records, from, to) {
   if (!Array.isArray(records) || records.length > 100) throw new Error('Invalid reviewed listings');
   return mergeEvents(records.flatMap((entry,index) => {

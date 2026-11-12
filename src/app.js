@@ -1,4 +1,4 @@
-import {LOOKAHEAD_DAYS, today, shift, mergeEvents, googleCalendarLink} from './events.mjs';
+import {LOOKAHEAD_DAYS, today, shift, mergeCancellations, mergeEvents, googleCalendarLink} from './events.mjs';
 import {calendar, departmentDirectory, departmentPosts} from './sources.mjs';
 
 const $ = id => document.getElementById(id);
@@ -9,7 +9,7 @@ const make = (tag, text, className) => {
   return element;
 };
 const current = today();
-const lower = shift(current, -6), upper = shift(current, LOOKAHEAD_DAYS);
+const sourceFrom = shift(current, -6), upper = shift(current, LOOKAHEAD_DAYS);
 const noon = day => new Date(day + 'T12:00:00Z');
 const monday = day => shift(day, -((noon(day).getUTCDay() + 6) % 7));
 const format = (day, options) => new Intl.DateTimeFormat('en-US', {timeZone:'UTC', ...options}).format(noon(day));
@@ -72,6 +72,7 @@ function listing(event) {
 }
 function render() {
   const matches = shown();
+  const oldest = rows[0]?.date < sourceFrom ? rows[0].date : sourceFrom;
   const active = document.activeElement?.dataset?.day;
   const strip = $('days');
   const firstMonth = format(week,{month:'short'}), lastMonth = format(shift(week,6),{month:'short'});
@@ -79,7 +80,7 @@ function render() {
   $('date').textContent = selected ? displayDay(selected) : week === monday(current) ? 'Upcoming' :
     firstMonth + ' ' + startNumber + '–' + (firstMonth === lastMonth ? '' : lastMonth + ' ') + endNumber;
   $('clear').hidden = !(search.value || food.value);
-  $('previous').disabled = shift(week,-1) < lower;
+  $('previous').disabled = shift(week,-1) < oldest;
   $('next').disabled = shift(week,7) > upper;
   const dayNodes = [];
   for (let i = 0; i < 7; i++) {
@@ -88,7 +89,7 @@ function render() {
     const button = make('button', '', 'day');
     button.type = 'button';
     button.dataset.day = day;
-    button.disabled = day < lower || day > upper;
+    button.disabled = day < oldest || day > upper;
     button.setAttribute('aria-label', displayDay(day) + ', ' + count + (count === 1 ? ' event' : ' events'));
     button.setAttribute('aria-pressed', String(day === selected));
     if (day === current) button.setAttribute('aria-current','date');
@@ -154,7 +155,8 @@ async function load() {
     saved = await response.json();
     if (!Array.isArray(saved.events) || !saved.updatedAt) throw new Error('Invalid feed');
     if (attempt !== scan) return;
-    rows = saved.events.filter(event => event.date >= lower && event.date <= upper);
+    withdrawals = saved.cancellations || [];
+    rows = mergeEvents([...saved.events,...rows],withdrawals);
   } catch {
     // The browser can still reach the public calendar directly.
   }
@@ -163,14 +165,16 @@ async function load() {
   if (rows.length) render();
   const stale = !saved || Date.now() - Date.parse(saved.updatedAt) > 26 * 60 * 60 * 1000;
   const publicRead = (url,options)=>fetch(url,{...options,credentials:'omit'});
-  const supplemental = (!saved?.departmentsComplete || stale) && refreshDepartments(attempt,publicRead,()=>withdrawals);
+  function addListings(events,cancellations) {
+    withdrawals = mergeCancellations([...withdrawals,...cancellations]);
+    rows = mergeEvents([...events,...rows],withdrawals);
+  }
+  const supplemental = (!saved?.departmentsComplete || stale) && refreshDepartments(attempt,publicRead,addListings);
   if (!saved?.complete || stale) {
     try {
-      const live = await calendar(lower,upper,publicRead);
+      const live = await calendar(sourceFrom,upper,publicRead);
       if (attempt !== scan) return;
-      const retained = rows.filter(event => event.source !== 'Williams calendar' || !live.complete);
-      withdrawals = live.cancellations;
-      rows = mergeEvents([...retained,...live.events],withdrawals);
+      addListings(live.events,live.cancellations);
       if (!live.complete) failures.add('Williams calendar');
     } catch {
       if (attempt === scan) failures.add('Williams calendar');
@@ -179,15 +183,15 @@ async function load() {
   if (attempt === scan) {showStatus(); render();}
   await supplemental;
 }
-async function refreshDepartments(attempt,publicRead,getWithdrawals) {
+async function refreshDepartments(attempt,publicRead,addListings) {
   try {
     const groups = await departmentDirectory(publicRead);
     let group = 0;
     async function scanGroup() {
       while (group < groups.length && attempt === scan) {
-        const data = await departmentPosts(groups[group++],lower,upper,publicRead);
-        if (attempt === scan && data.events.length) {
-          rows = mergeEvents([...rows,...data.events],getWithdrawals());
+        const data = await departmentPosts(groups[group++],sourceFrom,upper,publicRead);
+        if (attempt === scan && (data.events.length || data.cancellations.length)) {
+          addListings(data.events,data.cancellations);
           render();
         }
       }
