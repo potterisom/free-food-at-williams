@@ -4,8 +4,8 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: "15 8 * * *"
-      timezone: America/New_York
+    - cron: "7,22,37,52 * * * *"
+    - cron: "16 13 * * *"
 
 concurrency:
   group: public-pages
@@ -18,22 +18,31 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    outputs:
+      publish: ${{ steps.build.outputs.publish }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: "24"
-      - run: npm test
+      - if: github.event_name != 'schedule'
+        run: npm test
       - name: Pull reviewed campus listings
         env:
           WILLIAMS_FEED_ACCESS: ${{ secrets.WILLIAMS_FEED_ACCESS }}
         run: node scripts/pull-reviewed.mjs
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v4
+      - name: Build calendar
+        id: build
+        env:
+          WILLIAMS_INBOX_ONLY: ${{ github.event.schedule == '7,22,37,52 * * * *' }}
+        run: npm run build
+      - if: steps.build.outputs.publish == 'true'
+        uses: actions/upload-pages-artifact@v4
         with:
           path: _site
   deploy:
     needs: build
+    if: needs.build.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       pages: write
