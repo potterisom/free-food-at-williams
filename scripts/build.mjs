@@ -14,7 +14,7 @@ const liveReview = await readFile('data/reviewed-live.json','utf8').then(JSON.pa
   throw error;
 });
 const sourceNames = new Map(savedReview.map(row=>[row.title,row.source]));
-const reviewed = reviewedListings(liveReview?.events.map(row=>({...row,source:sourceNames.get(row.title) || row.source})) || savedReview,from,to);
+const reviewed = reviewedListings(liveReview?.events.map(row=>({...row,source:sourceNames.get(row.title) || row.source})) || savedReview,shift(date,-14),to);
 const previous = await fetch('https://potterisom.github.io/free-food-at-williams/events.json?refresh='+Date.now(), {cache:'no-store',signal:AbortSignal.timeout(8000)})
   .then(response=>response.ok ? response.json() : null).catch(()=>null);
 if ((process.env.GITHUB_ACTIONS === 'true' || inboxOnly) && !Array.isArray(previous?.events)) {

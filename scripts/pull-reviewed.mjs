@@ -25,7 +25,7 @@ try {
   const {events,updatedAt,cancellations} = await pull(token,key);
   if (!Number.isFinite(Date.parse(updatedAt))) throw new Error('Invalid export revision');
   const date = today();
-  reviewedListings(events,shift(date,-6),shift(date,LOOKAHEAD_DAYS));
+  reviewedListings(events,shift(date,-14),shift(date,LOOKAHEAD_DAYS));
   reviewedCancellations({events,cancellations});
   await writeFile('data/reviewed-live.json',JSON.stringify({events,updatedAt,cancellations})+'\n');
   console.log('Imported '+events.length+' reviewed listings.');

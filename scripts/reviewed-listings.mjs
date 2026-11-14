@@ -17,7 +17,7 @@ export function reviewedCancellations(feed) {
   });
 }
 export function reviewedListings(records, from, to) {
-  if (!Array.isArray(records) || records.length > 100) throw new Error('Invalid reviewed listings');
+  if (!Array.isArray(records) || records.length > 300) throw new Error('Invalid reviewed listings');
   return mergeEvents(records.flatMap((entry,index) => {
     const invalid = () => new Error('Invalid reviewed listing ' + (index+1));
     if (!entry || !Object.keys(entry).every(key=>fields.has(key)) || !validDay(entry.date)) throw invalid();
